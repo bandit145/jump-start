@@ -1,0 +1,6 @@
+#!/usr/bin/env python
+
+import jump_start.jump_start as jump_start
+
+if __name__ == '__main__':
+	jump_start.main()
