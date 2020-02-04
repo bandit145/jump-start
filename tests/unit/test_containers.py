@@ -3,7 +3,7 @@ import docker
 import logging
 import atexit
 
-TEST_CONTAINER_NAME = 'alpine:latest'
+TEST_CONTAINER_NAME = 'quay.io/bandit145/isc-kea4:latest'
 
 def cleanup():
 	client = get_docker_client()
@@ -21,6 +21,8 @@ def test_infracont():
 	infra_cont = InfraCont(logging, TEST_CONTAINER_NAME, client)
 
 	infra_cont.pull()
+	logging.debug(infra_cont.volumes)
+	logging.debug(infra_cont.ports)
 	infra_cont.start()
 	assert len(client.containers.list()) == 1
 	infra_cont.stop()

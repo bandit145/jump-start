@@ -17,11 +17,16 @@ class InfraCont(ABC):
 	volumes = None
 	ports = None
 
-	def __init__(self, output, cont_name, client):
+	def __init__(self, output, cont_name, client , **kwargs):
 		self.cont_name, self.tag = cont_name.split(':')
 		# docker client
 		self.client = client
 		self.output = output
+		if 'volumes' not in kwargs.keys():
+			self.host_ports = kwargs['host_ports']
+		else:
+			self.host_ports = None
+
 
 	def configure(self): pass
 
@@ -30,7 +35,8 @@ class InfraCont(ABC):
 		cont_config = self.client.api.inspect_image(self.image.id)
 		self.output.debug('container config: {0}'.format(cont_config))
 		self.volumes = cont_config['ContainerConfig']['Volumes']
-		self.ports = cont_configp['ContainerConfig']['ExposedPorts']
+		for port in cont_config['ContainerConfig']['ExposedPorts']
+		self.ports = cont_config['ContainerConfig']['ExposedPorts']
 
 	def start(self):
 		if not self.container:
