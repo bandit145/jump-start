@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod, abstractproperty
+import os
 
 # abstract base classes
 
@@ -15,32 +16,36 @@ class InfraCont(ABC):
 	image = None
 	container = None
 	volumes = None
-	ports = None
+	config = None
+	ports = {}
 
-	def __init__(self, output, cont_name, client , **kwargs):
+	def __init__(self, output, cont_name, client, **kwargs):
 		self.cont_name, self.tag = cont_name.split(':')
 		# docker client
 		self.client = client
 		self.output = output
-		if 'volumes' not in kwargs.keys():
-			self.host_ports = kwargs['host_ports']
-		else:
-			self.host_ports = None
+		self.mnt_vol = '/home/'+ os.getenv('USER') + '/.jump-start/' + type(self).__name__.lower()
 
+	def create_volume(self):
+		if not os.path.isdir(self.mnt_vol):
+			os.mkdir(self.mnt_vol)
+		self.volumes = {self.mnt_vol: {'bind': list(self.config['ContainerConfig']['Volumes'].keys())[0], 'mode':'Z'}}
 
-	def configure(self): pass
+	def run():
+		self.pull()
+		self.create_volume()
+		self.start()
 
 	def pull(self):
 		self.image = self.client.images.pull(self.cont_name, tag=self.tag)
-		cont_config = self.client.api.inspect_image(self.image.id)
-		self.output.debug('container config: {0}'.format(cont_config))
-		self.volumes = cont_config['ContainerConfig']['Volumes']
-		for port in cont_config['ContainerConfig']['ExposedPorts']
-		self.ports = cont_config['ContainerConfig']['ExposedPorts']
+		self.config = self.client.api.inspect_image(self.image.id)
+		self.output.debug('container config: {0}'.format(self.config))
+		for port in self.config['ContainerConfig']['ExposedPorts'].keys():
+			self.ports[port] = int(port.split('/')[0])
 
 	def start(self):
 		if not self.container:
-			self.container = self.client.containers.run(self.cont_name, detach=True)
+			self.container = self.client.containers.run(self.cont_name, detach=True, ports=self.ports, volumes=self.volumes)
 
 	def stop(self):
 		if self.container:

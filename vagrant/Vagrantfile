@@ -1,0 +1,4 @@
+Vagrant.configure("2") do |config|
+  config.vm.box = "generic/fedora31"
+  config.vm.synced_folder "../", "/jump-start"
+end
