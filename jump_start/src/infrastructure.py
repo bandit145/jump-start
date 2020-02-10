@@ -1,5 +1,9 @@
 from abc import ABC, abstractmethod, abstractproperty
+import dns.zone
+import dns
 import os
+import yaml
+import json
 
 # abstract base classes
 
@@ -19,7 +23,7 @@ class InfraCont(ABC):
 	config = None
 	ports = {}
 
-	def __init__(self, output, cont_name, client, **kwargs):
+	def __init__(self, output, cont_name, client):
 		self.cont_name, self.tag = cont_name.split(':')
 		# docker client
 		self.client = client
@@ -31,9 +35,17 @@ class InfraCont(ABC):
 			os.mkdir(self.mnt_vol)
 		self.volumes = {self.mnt_vol: {'bind': list(self.config['ContainerConfig']['Volumes'].keys())[0], 'mode':'Z'}}
 
-	def run():
+	@abstractmethod
+	def generate_config(self): pass
+
+	@abstractmethod
+	def check_config(self): pass
+
+	def run(self):
 		self.pull()
 		self.create_volume()
+		self.generate_config()
+		self.check_config()
 		self.start()
 
 	def pull(self):
@@ -52,7 +64,37 @@ class InfraCont(ABC):
 			self.container.remove(force=True)
 
 
-class DNSContainer(InfraCont):
+class DHCPContainer(InfraCont):
 
 	def __init__(self, output, cont_name, client):
+		self.config = config
 		super().__init__(output, cont_name, client)
+
+	def generate_config(self):
+		with open(self.mnt_vol + 'kea-dhcp4.conf', 'w') as cont_file:
+			json.dump(self.config, cont_file)
+
+	def check_config():
+		output = self.client.containers.run(self.cont_name, '/usr/sbin/kea-dhcp4 -t -c ' + self.mnt_vol + '/kea-dhcp4.conf', volumes=self.volumes, stderr=True)
+		self.output.debug(output)
+
+
+
+class DNSContainer(InfraCont):
+
+	dns_config = {
+		'server':{},
+		'zone':{}
+	}
+
+	def __init__(self, output, cont_name, client, dns_zone, dns_config=None):
+		self.dns_zone = dns_zone
+		
+		if dns_config:
+			self.dns_config = dns_config
+		super().__init__(output, cont_name, client)
+
+	def generate_config(self):
+		with open(self.mnt_vol + '/nsd.conf', 'r') as nsd_conf:
+			file.write(yaml.dump(self.dns_config))
+
