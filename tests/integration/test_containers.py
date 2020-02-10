@@ -1,4 +1,4 @@
-from jump_start.src.infrastructure import InfraCont
+from jump_start.src.infrastructure import InfraCont, DHCPContainer, DNSContainer
 import jump_start.src.utils as utils 
 import docker
 import logging
@@ -7,6 +7,7 @@ import os
 import shutil
 
 TEST_CONTAINER_NAME = 'quay.io/bandit145/test-alpine:latest'
+TEST_DHCP_CONTAINER = 'quay.io/bandit145/isc-kea4:latest'
 
 def cleanup():
 	client = get_docker_client()
@@ -41,3 +42,42 @@ def test_infracont():
 	assert 'hi' == infra_cont.container.exec_run('cat /hi/hello')[1].decode()
 	assert len(client.containers.list()) == 1
 	infra_cont.stop()
+
+
+def test_dhcpcont():
+	config = {
+		'Dhcp4':{
+			'interfaces-config': {
+				'interfaces': []
+			},
+			'control-socket': {
+				'socket-type': 'unix',
+				'socket-name': '/run/kea/kea-dhcp4-ctrl.sock'
+			},
+			'lease-database': {
+				'type': 'memfile',
+				'lfc-interval': 3600
+			},
+			'subnet4': [
+				{
+					'subnet': '192.0.2.0/24',
+					"pools": [ { "pool": "192.0.2.1 - 192.0.2.200" } ]
+				}
+			]
+		}
+	}
+	client = get_docker_client()
+	dhcp_cont = DHCPContainer(logging, TEST_DHCP_CONTAINER, client, config)
+	dhcp_cont.run()
+	assert 'kea-dhcp4' in dhcp_cont.container.exec_run('ps')[1].decode()
+	dhcp_cont.stop()
+
+
+# def test_dnscont():
+# 	zone = None
+# 	config = None
+# 	client = get_docker_client()
+# 	dns_cont = DNSContainer(logging, TEST_DNS_CONTAINER, client, zone, config)
+# 	dns_cont.run()
+# 	assert 'bind' in dns_cont.container.exec_run('ps')[1].decode()
+# 	dns_cont.stop()

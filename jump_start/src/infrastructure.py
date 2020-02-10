@@ -1,5 +1,6 @@
-from abc import ABC, abstractmethod, abstractproperty
+from jump_start.src.exceptions import ConfigException
 import dns.zone
+import docker
 import dns
 import os
 import yaml
@@ -7,16 +8,15 @@ import json
 
 # abstract base classes
 
-class Repo(ABC):
+class Repo():
 
 	def __init__(self, repo_path):
 		self.repo_path = repo_path
 
-	@abstractmethod
 	def sync_repo(self): pass
 
 
-class InfraCont(ABC):
+class InfraCont():
 	image = None
 	container = None
 	volumes = None
@@ -35,17 +35,18 @@ class InfraCont(ABC):
 			os.mkdir(self.mnt_vol)
 		self.volumes = {self.mnt_vol: {'bind': list(self.config['ContainerConfig']['Volumes'].keys())[0], 'mode':'Z'}}
 
-	@abstractmethod
 	def generate_config(self): pass
 
-	@abstractmethod
 	def check_config(self): pass
 
 	def run(self):
 		self.pull()
 		self.create_volume()
 		self.generate_config()
-		self.check_config()
+		try:
+			self.check_config()
+		except docker.errors.ContainerError as error:
+			raise ConfigException(error)
 		self.start()
 
 	def pull(self):
@@ -57,6 +58,7 @@ class InfraCont(ABC):
 
 	def start(self):
 		if not self.container:
+			self.output.debug('starting container')
 			self.container = self.client.containers.run(self.cont_name, detach=True, ports=self.ports, volumes=self.volumes)
 
 	def stop(self):
@@ -66,16 +68,17 @@ class InfraCont(ABC):
 
 class DHCPContainer(InfraCont):
 
-	def __init__(self, output, cont_name, client):
-		self.config = config
+	def __init__(self, output, cont_name, client, dhcp_config):
+		self.dhcp_config = dhcp_config
 		super().__init__(output, cont_name, client)
 
 	def generate_config(self):
-		with open(self.mnt_vol + 'kea-dhcp4.conf', 'w') as cont_file:
-			json.dump(self.config, cont_file)
+		with open(self.mnt_vol + '/kea-dhcp4.conf', 'w') as cont_file:
+			json.dump(self.dhcp_config, cont_file)
 
-	def check_config():
-		output = self.client.containers.run(self.cont_name, '/usr/sbin/kea-dhcp4 -t -c ' + self.mnt_vol + '/kea-dhcp4.conf', volumes=self.volumes, stderr=True)
+	def check_config(self):
+		self.output.debug('checking dhcp confg')
+		output = self.client.containers.run(self.cont_name, '/usr/sbin/kea-dhcp4 -t ' + self.volumes[self.mnt_vol]['bind'] + '/kea-dhcp4.conf', volumes=self.volumes, stderr=True, remove=True)
 		self.output.debug(output)
 
 
