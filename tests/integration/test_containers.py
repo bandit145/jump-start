@@ -8,6 +8,7 @@ import shutil
 
 TEST_CONTAINER_NAME = 'quay.io/bandit145/test-alpine:latest'
 TEST_DHCP_CONTAINER = 'quay.io/bandit145/isc-kea4:latest'
+TEST_DNS_CONTAINER = 'quay.io/bandit145/isc-bind:latest'
 
 def cleanup():
 	client = get_docker_client()
@@ -73,11 +74,32 @@ def test_dhcpcont():
 	dhcp_cont.stop()
 
 
-# def test_dnscont():
-# 	zone = None
-# 	config = None
-# 	client = get_docker_client()
-# 	dns_cont = DNSContainer(logging, TEST_DNS_CONTAINER, client, zone, config)
-# 	dns_cont.run()
-# 	assert 'bind' in dns_cont.container.exec_run('ps')[1].decode()
-# 	dns_cont.stop()
+def test_dnscont():
+	zone = {
+		'name': 'testzone.test',
+		'master_name': 'ns1.testzone.test',
+		'responsible_name': 'thing@thing',
+		'refresh': '0',
+		'retry': '0',
+		'expire': '0',
+		'ttl': '1',
+
+		'records': [
+			{'type': 'a', 'data': ['192.168.1.1'], 'name': 'test'}
+		]
+
+	}
+	config = {
+		'zones': [
+			{
+				'name': 'testzone.test',
+				'type': 'master'
+			}
+		]
+
+	}
+	client = get_docker_client()
+	dns_cont = DNSContainer(logging, TEST_DNS_CONTAINER, client, zone, config)
+	dns_cont.run()
+	assert 'bind' in dns_cont.container.exec_run('ps')[1].decode()
+	dns_cont.stop()
