@@ -79,10 +79,10 @@ def test_dnscont():
 		'name': 'testzone.test',
 		'master_name': 'ns1.testzone.test',
 		'responsible_name': 'thing@thing',
-		'refresh': '0',
-		'retry': '0',
-		'expire': '0',
-		'ttl': '1',
+		'refresh': 0,
+		'retry': 0,
+		'expire': 0,
+		'ttl': 1,
 
 		'records': [
 			{'type': 'a', 'data': ['192.168.1.1'], 'name': 'test'}

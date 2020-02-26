@@ -1,7 +1,7 @@
 named_config = '''options {
         listen-on port 53 { 0.0.0.0; };
         listen-on-v6 port 53 { ::/0; };
-        directory       "/etc/named/";
+        directory       "/etc/named_conf/";
         dump-file       "/var/bind/data/cache_dump.db";
         statistics-file "/var/bind/data/named_stats.txt";
         memstatistics-file "/var/bind/data/named_mem_stats.txt";
