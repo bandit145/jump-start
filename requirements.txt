@@ -1,4 +1,3 @@
-dnspython
 pyyaml
 colorama
 docker
