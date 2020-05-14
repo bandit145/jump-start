@@ -66,7 +66,7 @@ class DNSMasq(InfraCont):
         self.dhcp_config = dhcp_config
         self.dns_config = dns_config
         self.pxe_config = pxe_config
-        super().__init__(output, cont_name, client)
+        super().__init__(output, DNSMasq.cont_name, client)
 
     def generate_config(self):
         config_file = ''
