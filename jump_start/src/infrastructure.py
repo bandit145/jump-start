@@ -1,5 +1,4 @@
 from jump_start.src.exceptions import ConfigException
-import jump_start.src.data as data
 from jinja2 import Environment, BaseLoader
 import docker
 import os
@@ -68,18 +67,30 @@ class DNSMasq(InfraCont):
         self.pxe_config = pxe_config
         super().__init__(output, DNSMasq.cont_name, client)
 
-    def generate_config(self):
+    def generate_pxelinux(self, boot_append):
+        return '''default vesamenu.c32
+        timout 30
+        label os_install
+            menu label ^install system
+            kernel vmlinuz
+            append initrd=initrd.img {0}
+        '''.format(boot_append)
+
+    def generate_config(self, boot_append):
         config_file = ''
         #global options
         config_file += 'domain={0}\n'.format(dns_config['domain'])
         config_file += 'no-hosts\n'
         config_file += 'enable-tftp\n'
+        config_file += 'dhcp-boot=pxelinux.0\n'
         config_file += 'tftp-root=/etc/dnsmasq/tftp/\n'
         #dhcp settings
-        for key, value in dhcp_config:
-            config_file += '{0}={1}\n'.format(key, value)
+        for item in dhcp_config['dhcp-range']:
+            config_file += 'dhcp-range={0}\n'.format(item)
+        for item in dhcp_config['dhcp-option']:
+            config_file += 'dhcp-option{0}\n'.format(item)
         #dns settings
-        for key, vlaue in dns_config:
+        for key, value in dns_config:
             config_file += '{0}={1}\n'.format(key, value)
         #pxe settings
         config_file += 'dhcp-boot={0}'.format(pxe_config['boot-file'])
@@ -87,6 +98,8 @@ class DNSMasq(InfraCont):
             os.symlink(pxe_config['tftp_dir'], self.mnt_vol + '/tftp/', target_is_directory=True)
         with open(self.mnt_vol + 'dnsmasq.conf') as file:
             file.write(config_file)
+        with open(self.mnt_vol + '/tftp/pxelinux.0') as pxelinux:
+            file.write(self.generate_config(boot_append))
 
     def check_config(self):
         self.output.debug('checking dhcp confg')
@@ -101,6 +114,7 @@ class Http(InfraCont):
     def __init__(self, output, http_config):
         self.http_config = http_config
         super().__init__(output, Http.cont_name, client)
+    
     # TODO: add util configuration classes/functions to get certain OS/s, self configure edition
     def generate_config(self):
         pass
