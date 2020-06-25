@@ -1,9 +1,7 @@
 from jump_start.src.exceptions import ConfigException
-from jinja2 import Environment, BaseLoader
-import docker
+from docker.errors import ContainerError
 import os
-import yaml
-import json
+
 
 class InfraCont():
     image = None
@@ -17,12 +15,12 @@ class InfraCont():
         # docker client
         self.client = client
         self.output = output
-        self.mnt_vol = '/home/'+ os.getenv('USER') + '/.jump-start/' + type(self).__name__.lower()
+        self.mnt_vol = '/home/' + os.getenv('USER') + '/.jump-start/' + type(self).__name__.lower()
 
     def create_volume(self):
         if not os.path.isdir(self.mnt_vol):
             os.mkdir(self.mnt_vol)
-        self.volumes = {self.mnt_vol: {'bind': list(self.config['ContainerConfig']['Volumes'].keys())[0], 'mode':'Z'}}
+        self.volumes = {self.mnt_vol: {'bind': list(self.config['ContainerConfig']['Volumes'].keys())[0], 'mode': 'Z'}}
 
     def generate_config(self):
         pass
@@ -36,7 +34,7 @@ class InfraCont():
         self.generate_config()
         try:
             self.check_config()
-        except docker.errors.ContainerError as error:
+        except ContainerError as error:
             raise ConfigException(error)
         self.start()
 
@@ -61,10 +59,8 @@ class DNSMasq(InfraCont):
 
     cont_name = 'quay.io/bandit145/dnsmasq'
 
-    def __init__(self, output, client, dhcp_config, dns_config, pxe_config):
+    def __init__(self, output, client, dhcp_config):
         self.dhcp_config = dhcp_config
-        self.dns_config = dns_config
-        self.pxe_config = pxe_config
         super().__init__(output, DNSMasq.cont_name, client)
 
     def generate_pxelinux(self, boot_append):
@@ -78,28 +74,26 @@ class DNSMasq(InfraCont):
 
     def generate_config(self, boot_append):
         config_file = ''
-        #global options
-        config_file += 'domain={0}\n'.format(dns_config['domain'])
+        # global options
+        # config_file += 'domain={0}\n'.format(self.dns_config['domain'])
         config_file += 'no-hosts\n'
         config_file += 'enable-tftp\n'
         config_file += 'dhcp-boot=pxelinux.0\n'
         config_file += 'tftp-root=/etc/dnsmasq/tftp/\n'
-        #dhcp settings
-        for item in dhcp_config['dhcp-range']:
+        # pxe boot file
+        config_file += 'dhcp-boot=/tftp/pxelinux.0'
+        # dhcp settings
+        for item in self.dhcp_config['dhcp-range']:
             config_file += 'dhcp-range={0}\n'.format(item)
-        for item in dhcp_config['dhcp-option']:
-            config_file += 'dhcp-option{0}\n'.format(item)
-        #dns settings
-        for key, value in dns_config:
-            config_file += '{0}={1}\n'.format(key, value)
-        #pxe settings
-        config_file += 'dhcp-boot={0}'.format(pxe_config['boot-file'])
+        for item in self.dhcp_config['dhcp-option']:
+            config_file += 'dhcp-option={0}\n'.format(item)
+        # dns settings
         if not os.path.exits(self.mnt_vol + '/tftp/'):
-            os.symlink(pxe_config['tftp_dir'], self.mnt_vol + '/tftp/', target_is_directory=True)
+            os.mkdir(self.mnt_vol + '/tftp/')
         with open(self.mnt_vol + 'dnsmasq.conf') as file:
             file.write(config_file)
         with open(self.mnt_vol + '/tftp/pxelinux.0') as pxelinux:
-            file.write(self.generate_config(boot_append))
+            pxelinux.write(self.generate_config(boot_append))
 
     def check_config(self):
         self.output.debug('checking dhcp confg')
@@ -111,10 +105,5 @@ class DNSMasq(InfraCont):
 class Http(InfraCont):
     cont_name = 'quay.io/bandit145/apache'
 
-    def __init__(self, output, http_config):
-        self.http_config = http_config
+    def __init__(self, output, client):
         super().__init__(output, Http.cont_name, client)
-    
-    # TODO: add util configuration classes/functions to get certain OS/s, self configure edition
-    def generate_config(self):
-        pass
