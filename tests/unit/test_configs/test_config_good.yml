@@ -1,0 +1,14 @@
+---
+
+os:
+  name: CentOS
+  version: "7"
+domain: int.test.com
+subnet: 10.4.1.0/24
+install_file_template: /install_file.txt
+hosts:
+  - mac: 02:42:ed:ed:87:1d
+    hostname: test1
+
+  - mac: 1c:1b:0d:ec:55:e8
+    hostname: test2

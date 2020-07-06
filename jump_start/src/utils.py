@@ -1,8 +1,11 @@
 import os
 import sys
-from http.server import HTTPServer, BaseHTTPRequestHandle
+from http.server import HTTPServer, BaseHTTPRequestHandler
 import coloroma
 import json
+
+
+#def run_ansible
 
 
 def prep_local():
@@ -13,15 +16,19 @@ def prep_local():
 
 class Listener(HTTPServer):
     hosts = []
+    output = None
 
 
-class ListnerRequestHandle(BaseHTTPRequestHandle):
+class ListnerRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         try:
+            self.server.output.debug('Recieved data from {0}'.format(self.client_address)
             if not self.headers['Content-Type'] == 'application/json':
                 raise ValueError
-            self.server.hosts.append(json.loads(self.rfile.read()))
+            data = self.rfile.read()
+            self.server.hosts.append(json.loads(data))
             self.send_response(200)
+            self.server.output.print('Recieved callback from {0}'.format(data['hostname']))
         except json.JSONDecoderError:
             self.send_error(400)
         except ValueError:
