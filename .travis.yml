@@ -1,0 +1,20 @@
+language: python
+services:
+  - docker
+python:
+- '3.7'
+
+before_install:
+  - pip install -r requirements.txt -r dev-requirements.txt
+
+stages:
+  - name: test
+    if: type = pull_request
+
+jobs:
+  include:
+    - stage: test
+      script:
+        - flake8
+        - python -m pytest tests/unit/ --log-cli-level=9 -vv
+        - python -m pytest tests/integration/ --log-cli-level=9 -vv
