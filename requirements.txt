@@ -1,3 +1,4 @@
 pyyaml
 colorama
 docker
+ansible

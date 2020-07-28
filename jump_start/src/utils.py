@@ -1,7 +1,7 @@
 import os
 import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
-import coloroma
+import colorama
 import json
 
 
@@ -12,6 +12,10 @@ def prep_local():
     user = os.getenv('USER')
     if not os.path.isdir('/home/' + user + '/.jump-start/'):
         os.mkdir('/home/' + user + '/.jump-start/')
+    if not os.path.isdir('/home/' + user + '/.jump-start/' + 'web/'):
+        os.mkdir('/home/' + user + '/.jump-start/' + 'web/')
+    if not os.path.isdir('/home/' + user + '/.jump-start/' + 'web/cache/'):
+        os.mkdir('/home/' + user + '/.jump-start/' + 'web/cache/')
 
 
 class Listener(HTTPServer):
@@ -19,10 +23,10 @@ class Listener(HTTPServer):
     output = None
 
 
-class ListnerRequestHandler(BaseHTTPRequestHandler):
+class ListenerRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         try:
-            self.server.output.debug('Recieved data from {0}'.format(self.client_address)
+            self.server.output.debug('Recieved data from {0}'.format(self.client_address))
             if not self.headers['Content-Type'] == 'application/json':
                 raise ValueError
             data = self.rfile.read()
@@ -41,13 +45,13 @@ class Output():
         self.logger = logger
 
     def error(self, msg):
-        print(coloroma.Fore.RED, '==> ', msg, file=sys.stderr)
-        print(coloroma.Style.RESET_ALL)
+        print(colorama.Fore.RED+'==> ', msg, '\n==> exiting...',file=sys.stderr)
+        print(colorama.Style.RESET_ALL)
         sys.exit(1)
 
     def print(self, msg):
-        print(coloroma.Fore.GREEN, '==> ', msg, file=sys.stderr)
-        print(coloroma.Style.RESET_ALL)
+        print(colorama.Fore.GREEN+'==> ', msg, file=sys.stderr)
+        print(colorama.Style.RESET_ALL)
 
     def debug(self, msg):
         self.logger.debug(msg)

@@ -1,9 +1,6 @@
 config_schema = {
-    'os': {'required': False, 'override': True, 'type': dict, 'config': {
-            'name':  {'required': True, 'type': str},
-            'version': {'required': True, 'type': str}
-        }
-    },
+    'os': {'required': False, 'override': True, 'type': str},
+    'os_config': {'required': False, 'override': True, 'type': dict},
     'env': {'required': False, 'override': False, 'type': dict, 'config': {}},
     'domain': {'required': True, 'override': False, 'type': str},
     'subnet': {'required': True, 'override': False, 'type': str},
@@ -38,7 +35,7 @@ def validate_config(config, schema, override_keys=[]):
             # remove from override_keys list if issue
             elif key in config.keys() and key in override_keys:
                 del override_keys[override_keys.index(key)]
-            if  value['type'] == list or value['type'] == dict and key in config.keys():
+            if  value['type'] == list or value['type'] == dict and key in config.keys() and 'config' in value.keys():
                 data = validate_config(config[key], value['config'], override_keys)
                 if not data[0]:
                     return False, data[1]
